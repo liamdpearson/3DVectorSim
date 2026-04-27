@@ -16,13 +16,16 @@ Button::Button(sf::Vector2f pos, sf::Vector2f size, const std::string& label,
     text.setPosition(pos.x + size.x / 2.f, pos.y + size.y / 2.f);
 }
 
-void Button::handleEvent(const sf::Event& event) {
+bool Button::handleEvent(const sf::Event& event) {
     if (event.type == sf::Event::MouseButtonReleased &&
         event.mouseButton.button == sf::Mouse::Left) {
         sf::Vector2f mouse(event.mouseButton.x, event.mouseButton.y);
-        if (shape.getGlobalBounds().contains(mouse))
+        if (shape.getGlobalBounds().contains(mouse)) {
             onClickFn();
+            return true;
+        }
     }
+    return false;
 }
 
 void Button::draw(sf::RenderWindow& window) {
