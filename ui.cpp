@@ -36,3 +36,5 @@ void Button::draw(sf::RenderWindow& window) {
 bool Button::contains(sf::Vector2f point) const {
     return shape.getGlobalBounds().contains(point);
 }
+
+

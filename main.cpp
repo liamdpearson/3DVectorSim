@@ -1,18 +1,7 @@
-#define _USE_MATH_DEFINES
-#include <SFML/Graphics.hpp>
-#include <vector>
-#include <iostream>
-#include <cmath>
-#include <string>
-#include <sstream>
-#include <iomanip>
-#include "ui.hpp"
+#include "main.hpp"
 
 // g++ -c main.cpp ui.cpp -I"C:/SFML-2.5.1/include" -DSFML_STATIC
 // g++ main.o ui.o -o main -L"C:/SFML-2.5.1/lib" -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lopengl32 -lfreetype -lwinmm -lgdi32 -mwindows
-
-const int SCREEN_WIDTH = 1000, SCREEN_HEIGHT = 1000;
-
 
 std::string vecToString(float x, float y, float z) {
     std::ostringstream oss;
@@ -21,37 +10,6 @@ std::string vecToString(float x, float y, float z) {
     return oss.str();
 }
 
-
-
-struct Vector3 {
-    float x;
-    float y;
-    float z;
-    
-    Vector3 operator+(const Vector3& other) const {
-        return Vector3{x + other.x, y + other.y, z + other.z};
-    }
-    Vector3 operator-(const Vector3& other) const {
-        return Vector3{x - other.x, y - other.y, z - other.z};
-    }
-    bool operator==(const Vector3& other) const {
-        return (x == other.x && y == other.y && z == other.z);
-    }
-    float length() const {
-        return std::sqrt(x*x + y*y + z*z);
-    }
-};
-
-struct Vector {
-    Vector3 vec;
-    sf::Color color;
-    std::string text = vecToString(vec.x, vec.y, vec.z);
-};
-
-struct BasisVector {
-    Vector3 vec;
-    std::string text;
-};
 
 float dot_prod(const Vector3& u, const Vector3& v) {
     return (u.x * v.x) + (u.y * v.y) + (u.z * v.z);
@@ -69,15 +27,12 @@ Vector3 proj(const Vector3& u, const Vector3& v) {
 }
 
 
-
-
-
 void update_buttons(std::vector<Vector>& vectors, std::vector<Button>& del_buttons, const sf::Font& font) {
     del_buttons = {};
 
     for (int i = 0; i < vectors.size(); i++) {
         del_buttons.push_back(Button(
-        sf::Vector2f(120, 10 + 50*i), sf::Vector2f(30, 30), "X", font,
+        sf::Vector2f(10, 10 + 50*i), sf::Vector2f(30, 30), "X", font,
         [&vectors, i]() { vectors.erase(vectors.begin() + i); }));
     }
 }
@@ -102,12 +57,95 @@ std::tuple<float, float, float> calc_dist(const Vector3 vec, Vector3 cam_vec, fl
     return {x_dist, y_dist, z_dist};
 }
 
+std::vector<std::string> split_by_spaces(std::string s) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(s);
+    std::string token;
+
+    while (ss >> token)
+    {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+void handle_cmd_input(std::vector<Vector>& vectors, const std::string cmd, std::string& e_msg) {
+    std::vector<std::string> tokens = split_by_spaces(cmd);
+
+    if (tokens[0] == "new") {
+        if (tokens[1] == "vec" && tokens.size() == 5) {
+            try {
+                float x = std::stof(tokens[2]);
+                float y = std::stof(tokens[3]);
+                float z = std::stof(tokens[4]);
+                vectors.push_back(Vector{Vector3{x, y, z}, colors[vectors.size() % 6]});
+                e_msg = "";
+            } catch (std::invalid_argument e) {
+                e_msg = "Error: invalid vector value input";
+                return;
+            }
+        }
+    }
+    else if (tokens[0] == "add" || tokens[0] == "sub") {
+        if (tokens.size() == 3) {
+            try {
+                int a = std::stoi(tokens[1]);
+                int b = std::stoi(tokens[2]);
+
+                if (a < 1 || b < 1 || a > vectors.size() || b > vectors.size()) {
+                    e_msg = "Error: index out of range";
+                    return;
+                }
+                Vector3 vec = Vector3{};
+
+                if (tokens[0] == "add") {
+                    vec.x = vectors[a-1].vec.x + vectors[b-1].vec.x;
+                    vec.y = vectors[a-1].vec.y + vectors[b-1].vec.y;
+                    vec.z = vectors[a-1].vec.z + vectors[b-1].vec.z;
+                }
+                if (tokens[0] == "sub") {
+                    vec.x = vectors[a-1].vec.x - vectors[b-1].vec.x;
+                    vec.y = vectors[a-1].vec.y - vectors[b-1].vec.y;
+                    vec.z = vectors[a-1].vec.z - vectors[b-1].vec.z;
+                }
+
+                vectors.push_back(Vector{vec, colors[vectors.size() % 6]});
+            } catch (std::invalid_argument e) {
+                e_msg = "Error: invalid index input";
+                return;
+            }
+        }   
+    }
+    else if (tokens[0] == "proj") {
+        if (tokens.size() == 3) {
+            try {
+                int a = std::stoi(tokens[1]);
+                int b = std::stoi(tokens[2]);
+
+                if (a < 1 || b < 1 || a > vectors.size() || b > vectors.size()) {
+                    e_msg = "Error: index out of range";
+                    return;
+                }
+
+                Vector3 vec = proj(vectors[a-1].vec, vectors[b-1].vec);
+                vectors.push_back(Vector{vec, colors[vectors.size() % 6]});
+            } catch (std::invalid_argument e) {
+                e_msg = "Error: invalid index input";
+                return;
+            }
+        }
+    }
+}
+
 int main() {
     
     sf::RenderWindow window(sf::VideoMode({SCREEN_WIDTH, SCREEN_HEIGHT}), "3DVectorSim");
 
     sf::Font font;
     font.loadFromFile("Arial.ttf");
+    std::string cur_command = "";
+    std::string e_msg = "";
 
     float cam_yaw = 45.f;
     float cam_pitch = 45.f;
@@ -135,8 +173,8 @@ int main() {
     basis_vectors.push_back(BasisVector{Vector3{0, 0, -5}, "-5\tZ"});
 
     std::vector<Vector> vectors = {
-        Vector{Vector3{-2, 3, -4}, sf::Color::Blue},
-        Vector{Vector3{1, 1, 1}, sf::Color::Red}
+        Vector{Vector3{-2, 3, -4}, sf::Color::Red},
+        Vector{Vector3{1, 1, 1}, sf::Color::Green}
     };
 
     std::vector<Button> del_buttons = {};
@@ -162,6 +200,20 @@ int main() {
                      cam_dist -= delta;
 
                      if (cam_dist < 0.1) cam_dist = 0.1;
+                }
+            }
+
+            else if (event.type == sf::Event::TextEntered) {
+                if (event.text.unicode == '\r') {
+                    handle_cmd_input(vectors, cur_command, e_msg);
+                    update_buttons(vectors, del_buttons, font);
+                    cur_command = "";
+                } 
+                else if (event.text.unicode == '\b') {
+                    if (!cur_command.empty()) cur_command.pop_back();
+                } 
+                else if (event.text.unicode < 128) {
+                    cur_command += static_cast<char>(event.text.unicode);
                 }
             }
 
@@ -240,17 +292,27 @@ int main() {
 
             window.draw(line);
 
-            sf::Text label(vector.text, font, 14);
+            sf::Text label(std::to_string(i+1) + ". " + vector.text, font, 14);
             label.setFillColor(vector.color);
             label.setPosition(tip);
             window.draw(label);
-            label.setPosition(sf::Vector2f(10, 15+50*i));
+            label.setPosition(sf::Vector2f(50, 15+50*i));
             window.draw(label);
         }   
 
         for (Button& button: del_buttons) {
                 button.draw(window);
         }
+
+        sf::Text cmd("Command: [" + cur_command + ']', font, 20);
+        cmd.setPosition(sf::Vector2f(30, SCREEN_HEIGHT-60));
+        window.draw(cmd);
+
+        sf::Text error(e_msg, font, 20);
+        error.setFillColor(sf::Color::Red);
+        error.setPosition(sf::Vector2f(30, SCREEN_HEIGHT-120));
+        window.draw(error);
+
         window.display();
         // stop drawing
     }
