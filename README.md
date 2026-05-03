@@ -2,12 +2,18 @@
 
 Desmos style 3D vector visualizer
 
-How to use commands:
+## All Commands:
 - new vec x y z
 > creates new vector with coords (x, y, z)
-- add (vector index a) (vector index b)
-> vector a + vector b
-- subtract (vector index a) (vector index b)
-> vector a - vector b
-- proj (vector index a) (vector index b)
+- new plane v(vector index a)
+> creates a new plane with vector a as the normal vector
+- new plane v(vector index a) v(vector index b)
+> creates a new plane that goes through vectors a and b
+- add v(vector index a) v(vector index b)
+> creates new vector from a + b
+- sub v(vector index a) v(vector index b)
+> creates new vector from a - b
+- proj v(vector index a) v(vector index b)
 > projects vector a onto vector b
+- proj v(vector index a) p(plane index b)
+> projects a vector onto a plane

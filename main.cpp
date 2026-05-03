@@ -3,10 +3,19 @@
 // g++ -c main.cpp ui.cpp -I"C:/SFML-2.5.1/include" -DSFML_STATIC
 // g++ main.o ui.o -o main -L"C:/SFML-2.5.1/lib" -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lopengl32 -lfreetype -lwinmm -lgdi32 -mwindows
 
-std::string vecToString(float x, float y, float z) {
+std::string vec_to_string(float x, float y, float z) {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(1);
     oss << "(" << x << ", " << y << ", " << z << ")";
+    return oss.str();
+}
+
+std::string nvec_to_string(float x, float y, float z) {
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(1);
+    std::string s1 = "x ", s2 = "y ";
+    if (y>0) s1 = "x+"; if (z>0) s2 = "y+";
+    oss << x << s1 << y << s2 << z << "z = 0";
     return oss.str();
 }
 
@@ -16,7 +25,7 @@ float dot_prod(const Vector3& u, const Vector3& v) {
 }
 
 // returns projection of u onto v
-Vector3 proj(const Vector3& u, const Vector3& v) {
+Vector3 proj_vec(const Vector3& u, const Vector3& v) {
     float len_v_sqrd = dot_prod(v, v);
         if (len_v_sqrd == 0) return Vector3{0, 0, 0};
 
@@ -26,19 +35,34 @@ Vector3 proj(const Vector3& u, const Vector3& v) {
     return Vector3{v.x * scalar, v.y * scalar, v.z * scalar};
 }
 
+Vector3 proj_plane(const Vector3& u, const Plane& p) {
+    Vector3 proj_onto_n = proj_vec(u, p.n);
+    return Vector3{u.x - proj_onto_n.x, u.y - proj_onto_n.y, u.z - proj_onto_n.z};
+}
 
-void update_buttons(std::vector<Vector>& vectors, std::vector<Button>& del_buttons, const sf::Font& font) {
+Vector3 scale(const Vector3& v, float scalar) {
+    return Vector3{v.x * scalar, v.y * scalar, v.z * scalar};
+}
+
+
+void update_buttons(std::vector<Vector>& vectors, std::vector<Plane>& planes, std::vector<Button>& del_buttons, const sf::Font& font) {
     del_buttons = {};
 
     for (int i = 0; i < vectors.size(); i++) {
         del_buttons.push_back(Button(
-        sf::Vector2f(10, 10 + 50*i), sf::Vector2f(30, 30), "X", font,
+        sf::Vector2f(10, 60 + 50*i), sf::Vector2f(30, 30), "X", font,
         [&vectors, i]() { vectors.erase(vectors.begin() + i); }));
+    }
+
+    for (int i = vectors.size(); i < vectors.size() + planes.size(); i++) {
+        del_buttons.push_back(Button(
+        sf::Vector2f(10, 110 + 50*i), sf::Vector2f(30, 30), "X", font,
+        [&planes, i]() { planes.erase(planes.begin() + i); }));
     }
 }
 
 std::tuple<float, float, float> calc_dist(const Vector3 vec, Vector3 cam_vec, float cam_len_sqrd, Vector3 y_vec, Vector3 x_vec) {
-    Vector3 proj_onto_cam = proj(vec, cam_vec);
+    Vector3 proj_onto_cam = proj_vec(vec, cam_vec);
     Vector3 perp_onto_cam = vec - proj_onto_cam;
 
     // scalar component of vec along cam_vec direction
@@ -70,71 +94,168 @@ std::vector<std::string> split_by_spaces(std::string s) {
     return tokens;
 }
 
-void handle_cmd_input(std::vector<Vector>& vectors, const std::string cmd, std::string& e_msg) {
+void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, const std::string cmd, std::string& e_msg) {
     std::vector<std::string> tokens = split_by_spaces(cmd);
 
     if (tokens[0] == "new") {
-        if (tokens[1] == "vec" && tokens.size() == 5) {
-            try {
-                float x = std::stof(tokens[2]);
-                float y = std::stof(tokens[3]);
-                float z = std::stof(tokens[4]);
-                vectors.push_back(Vector{Vector3{x, y, z}, colors[vectors.size() % 6]});
-                e_msg = "";
-            } catch (std::invalid_argument e) {
-                e_msg = "Error: invalid vector value input";
-                return;
+        if (tokens[1] == "vec") {
+
+            if (vectors.size() >= 6) {
+                e_msg = "Error: too many vectors";
             }
+            else if (tokens.size() == 5) {
+                try {
+                    float x = std::stof(tokens[2]);
+                    float y = std::stof(tokens[3]);
+                    float z = std::stof(tokens[4]);
+                    vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 6]});
+                    e_msg = "";
+                } catch (std::invalid_argument e) {
+                    e_msg = "Error: invalid vector value input";
+                }
+            }
+            else {
+                e_msg = "Error: invalid amount of arguments";
+            }
+        }
+
+        else if (tokens[1] == "plane") {
+
+            if (planes.size() >= 3) {
+                e_msg = "Error: too many planes";
+            }
+            else if (tokens.size() == 3 && tokens[2].length() == 2) {
+                if (tokens[2][0] == 'v') {
+                    if (std::isdigit(tokens[2][1])) {
+                        int n = tokens[2][1] - '0';
+                        if (n < 1 || n > vectors.size()) {
+                            e_msg = "Error: index out of range";
+                            return;
+                        }
+                        planes.push_back(Plane{vectors[n-1].vec, plane_colors[planes.size() % 3]});
+                        e_msg = "";
+                    } else {
+                        e_msg = "Error: invalid input";
+                    }
+                }
+                else {
+                    e_msg = "Error: invalid input";
+                }
+            }
+            else if (tokens.size() == 4) {
+                if (tokens[2][0] == 'v' && tokens[2].length() == 2 && tokens[3][0] == 'v' && tokens[3].length() == 2) {
+                    if (std::isdigit(tokens[2][1]) && std::isdigit(tokens[3][1])) {
+                        int n1 = tokens[2][1] - '0';
+                        int n2 = tokens[3][1] - '0';
+                        if (n1 < 1 || n1 > vectors.size() || n2 < 1 || n2 > vectors.size()) {
+                            e_msg = "Error: index out of range";
+                            return;
+                        }
+                        planes.push_back(Plane{vectors[n1-1].vec, vectors[n2-1].vec, plane_colors[planes.size() % 3]});
+                        e_msg = "";
+                    } else {
+                        e_msg = "Error: invalid input";
+                    }
+                }
+                else {
+                    e_msg = "Error: invalid input";
+                }
+            }
+            else {
+                e_msg = "Error: invalid amount of arguments";
+            }
+        }
+        else {
+            e_msg = "Error: unrecognized object";
         }
     }
     else if (tokens[0] == "add" || tokens[0] == "sub") {
         if (tokens.size() == 3) {
-            try {
-                int a = std::stoi(tokens[1]);
-                int b = std::stoi(tokens[2]);
-
-                if (a < 1 || b < 1 || a > vectors.size() || b > vectors.size()) {
-                    e_msg = "Error: index out of range";
+            int a, b;
+            if (tokens[1][0] == 'v' && tokens[1].length() == 2 && tokens[2][0] == 'v' && tokens[2].length() == 2) {
+                if (std::isdigit(tokens[1][1]) && std::isdigit(tokens[2][1])) {
+                        a = tokens[1][1] - '0';
+                        if (a < 1 || a > vectors.size()) {
+                            e_msg = "Error: index out of range";
+                            return;
+                        }
+                        b = tokens[2][1] - '0';
+                        if (b < 1 || b > vectors.size()) {
+                            e_msg = "Error: index out of range";
+                            return;
+                        }
+                } else {
+                    e_msg = "Error: invalid input";
                     return;
                 }
-                Vector3 vec = Vector3{};
-
-                if (tokens[0] == "add") {
-                    vec.x = vectors[a-1].vec.x + vectors[b-1].vec.x;
-                    vec.y = vectors[a-1].vec.y + vectors[b-1].vec.y;
-                    vec.z = vectors[a-1].vec.z + vectors[b-1].vec.z;
-                }
-                if (tokens[0] == "sub") {
-                    vec.x = vectors[a-1].vec.x - vectors[b-1].vec.x;
-                    vec.y = vectors[a-1].vec.y - vectors[b-1].vec.y;
-                    vec.z = vectors[a-1].vec.z - vectors[b-1].vec.z;
-                }
-
-                vectors.push_back(Vector{vec, colors[vectors.size() % 6]});
-            } catch (std::invalid_argument e) {
-                e_msg = "Error: invalid index input";
+            } else {
+                e_msg = "Error: invalid input";
                 return;
             }
-        }   
+
+            Vector3 vec = Vector3{};
+
+            if (tokens[0] == "add") {
+                vec.x = vectors[a-1].vec.x + vectors[b-1].vec.x;
+                vec.y = vectors[a-1].vec.y + vectors[b-1].vec.y;
+                vec.z = vectors[a-1].vec.z + vectors[b-1].vec.z;
+            }
+            if (tokens[0] == "sub") {
+                vec.x = vectors[a-1].vec.x - vectors[b-1].vec.x;
+                vec.y = vectors[a-1].vec.y - vectors[b-1].vec.y;
+                vec.z = vectors[a-1].vec.z - vectors[b-1].vec.z;
+            
+            }
+
+            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+        }
+        else {
+            e_msg = "Error: invalid amount of arguments";
+        } 
     }
     else if (tokens[0] == "proj") {
         if (tokens.size() == 3) {
-            try {
-                int a = std::stoi(tokens[1]);
-                int b = std::stoi(tokens[2]);
-
-                if (a < 1 || b < 1 || a > vectors.size() || b > vectors.size()) {
-                    e_msg = "Error: index out of range";
-                    return;
+            int a, b;
+            if (tokens[1][0] == 'v' && tokens[1].length() == 2 && tokens[2].length() == 2) {
+                if (std::isdigit(tokens[1][1]) && std::isdigit(tokens[2][1])) {
+                        a = tokens[1][1] - '0';
+                        b = tokens[2][1] - '0';
+                        if (a < 1 || a > vectors.size()) {
+                            e_msg = "Error: index out of range";
+                            return;
+                        }
+                        if (tokens[2][0] == 'v') {
+                            if (b < 1 || b > vectors.size()) {
+                                e_msg = "Error: index out of range";
+                                return;
+                            }
+                            Vector3 vec = proj_vec(vectors[a-1].vec, vectors[b-1].vec);
+                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+                        }
+                        else if (tokens[2][0] == 'p') {
+                            if (b < 1 || b > planes.size()) {
+                                e_msg = "Error: index out of range";
+                                return;
+                            }
+                            Vector3 vec = proj_plane(vectors[a-1].vec, planes[b-1]);
+                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+                        }
+                        else {
+                            e_msg = "Error: invalid input";
+                        }
+                } else {
+                    e_msg = "Error: invalid input";
                 }
-
-                Vector3 vec = proj(vectors[a-1].vec, vectors[b-1].vec);
-                vectors.push_back(Vector{vec, colors[vectors.size() % 6]});
-            } catch (std::invalid_argument e) {
-                e_msg = "Error: invalid index input";
-                return;
+            } else {
+                e_msg = "Error: invalid input";
             }
         }
+        else {
+            e_msg = "Error: invalid amount of arguments";
+        }
+    }
+    else {
+        e_msg = "Error: unrecognized command";
     }
 }
 
@@ -172,13 +293,12 @@ int main() {
     basis_vectors.push_back(BasisVector{Vector3{0, -5, 0}, "-5\tY"});
     basis_vectors.push_back(BasisVector{Vector3{0, 0, -5}, "-5\tZ"});
 
-    std::vector<Vector> vectors = {
-        Vector{Vector3{-2, 3, -4}, sf::Color::Red},
-        Vector{Vector3{1, 1, 1}, sf::Color::Green}
-    };
+    std::vector<Vector> vectors = {};
+
+    std::vector<Plane> planes {};
 
     std::vector<Button> del_buttons = {};
-    update_buttons(vectors, del_buttons, font);
+    update_buttons(vectors, planes, del_buttons, font);
     
 
     sf::Vector2i prev_mouse_pos = sf::Mouse::getPosition(window);
@@ -205,9 +325,11 @@ int main() {
 
             else if (event.type == sf::Event::TextEntered) {
                 if (event.text.unicode == '\r') {
-                    handle_cmd_input(vectors, cur_command, e_msg);
-                    update_buttons(vectors, del_buttons, font);
-                    cur_command = "";
+                    if (!cur_command.empty()) {
+                        handle_cmd_input(vectors, planes, cur_command, e_msg);
+                        update_buttons(vectors, planes, del_buttons, font);
+                        cur_command = "";
+                    }
                 } 
                 else if (event.text.unicode == '\b') {
                     if (!cur_command.empty()) cur_command.pop_back();
@@ -219,7 +341,7 @@ int main() {
 
             for (Button& button: del_buttons) {
                 if (button.handleEvent(event)) {
-                    update_buttons(vectors, del_buttons, font);
+                    update_buttons(vectors, planes, del_buttons, font);
                 }
             }   
         }
@@ -244,7 +366,7 @@ int main() {
 
         Vector3 cam_vec = Vector3{x, y, z};
         float cam_len_sqrd = dot_prod(cam_vec, cam_vec);
-        Vector3 y_vec = up_vec - proj(up_vec, cam_vec);
+        Vector3 y_vec = up_vec - proj_vec(up_vec, cam_vec);
         Vector3 x_vec = Vector3{
             cam_vec.y * y_vec.z - cam_vec.z * y_vec.y,
             cam_vec.z * y_vec.x - cam_vec.x * y_vec.z,
@@ -254,6 +376,42 @@ int main() {
         // start drawing
         window.clear();
 
+        sf::Text plane_header("Planes:", font, 20);
+        plane_header.setPosition(sf::Vector2f(15, 65+50*(vectors.size())));
+        window.draw(plane_header);
+
+        for (int i = 0; i < planes.size(); i++) {
+            Plane plane = planes[i];
+
+            std::tuple<float, float, float> p1 = calc_dist(plane.p1, cam_vec, cam_len_sqrd, y_vec, x_vec);
+            float p1x = std::get<0>(p1), p1y = std::get<1>(p1), p1z = std::get<2>(p1);
+            std::tuple<float, float, float> p2 = calc_dist(plane.p2, cam_vec, cam_len_sqrd, y_vec, x_vec);
+            float p2x = std::get<0>(p2), p2y = std::get<1>(p2), p2z = std::get<2>(p2);
+            std::tuple<float, float, float> p3 = calc_dist(plane.p3, cam_vec, cam_len_sqrd, y_vec, x_vec);
+            float p3x = std::get<0>(p3), p3y = std::get<1>(p3), p3z = std::get<2>(p3);
+            std::tuple<float, float, float> p4 = calc_dist(plane.p4, cam_vec, cam_len_sqrd, y_vec, x_vec);
+            float p4x = std::get<0>(p4), p4y = std::get<1>(p4), p4z = std::get<2>(p4);
+
+            sf::ConvexShape quad;
+            quad.setPointCount(4);
+
+            quad.setPoint(0, sf::Vector2f(3*SCREEN_HEIGHT/5 + (p1x)/(p1z)*500, SCREEN_HEIGHT/2 - (p1y)/(p1z)*500));
+            quad.setPoint(1, sf::Vector2f(3*SCREEN_HEIGHT/5 + (p2x)/(p2z)*500, SCREEN_HEIGHT/2 - (p2y)/(p2z)*500));
+            quad.setPoint(2, sf::Vector2f(3*SCREEN_HEIGHT/5 + (p3x)/(p3z)*500, SCREEN_HEIGHT/2 - (p3y)/(p3z)*500));
+            quad.setPoint(3, sf::Vector2f(3*SCREEN_HEIGHT/5 + (p4x)/(p4z)*500, SCREEN_HEIGHT/2 - (p4y)/(p4z)*500));
+
+            sf::Color fill = plane.color;
+            fill.a = 99;
+            quad.setFillColor(fill);
+
+            window.draw(quad);
+
+            sf::Text label(std::to_string(i+1) + ". " + plane.text, font, 14);
+            label.setFillColor(plane.color);
+            label.setPosition(sf::Vector2f(50, 115+50*(vectors.size() + i)));
+            window.draw(label);
+        }
+
         for (BasisVector& bv : basis_vectors) {
 
             Vector3 vec = bv.vec;
@@ -261,10 +419,10 @@ int main() {
             std::tuple<float, float, float> tup = calc_dist(vec, cam_vec, cam_len_sqrd, y_vec, x_vec);
             float x_dist = std::get<0>(tup), y_dist = std::get<1>(tup), z_dist = std::get<2>(tup);
 
-            sf::Vector2f tip(3*SCREEN_HEIGHT/5 + (x_dist)/(z_dist)*500, 2*SCREEN_HEIGHT/5 - (y_dist)/(z_dist)*500);
+            sf::Vector2f tip(3*SCREEN_HEIGHT/5 + (x_dist)/(z_dist)*500, SCREEN_HEIGHT/2 - (y_dist)/(z_dist)*500);
 
             sf::VertexArray line(sf::Lines, 2);
-            line[0].position = sf::Vector2f(3*SCREEN_HEIGHT/5, 2*SCREEN_HEIGHT/5);
+            line[0].position = sf::Vector2f(3*SCREEN_HEIGHT/5, SCREEN_HEIGHT/2);
             line[1].position = tip;
 
             window.draw(line);
@@ -274,6 +432,10 @@ int main() {
             window.draw(label);
         }
 
+        sf::Text vec_header("Vectors:", font, 20);
+        vec_header.setPosition(sf::Vector2f(15, 15));
+        window.draw(vec_header);
+
         for (int i = 0; i < vectors.size(); i++) {
             Vector vector = vectors[i];
             Vector3 vec = vector.vec;
@@ -281,10 +443,10 @@ int main() {
             std::tuple<float, float, float> tup = calc_dist(vec, cam_vec, cam_len_sqrd, y_vec, x_vec);
             float x_dist = std::get<0>(tup), y_dist = std::get<1>(tup), z_dist = std::get<2>(tup);
 
-            sf::Vector2f tip(3*SCREEN_HEIGHT/5 + (x_dist)/(z_dist)*500, 2*SCREEN_HEIGHT/5 - (y_dist)/(z_dist)*500);
+            sf::Vector2f tip(3*SCREEN_HEIGHT/5 + (x_dist)/(z_dist)*500, SCREEN_HEIGHT/2 - (y_dist)/(z_dist)*500);
             
             sf::VertexArray line(sf::Lines, 2);
-            line[0].position = sf::Vector2f(3*SCREEN_HEIGHT/5, 2*SCREEN_HEIGHT/5);
+            line[0].position = sf::Vector2f(3*SCREEN_HEIGHT/5, SCREEN_HEIGHT/2);
             line[1].position = tip;
 
             line[0].color = vector.color;
@@ -296,7 +458,7 @@ int main() {
             label.setFillColor(vector.color);
             label.setPosition(tip);
             window.draw(label);
-            label.setPosition(sf::Vector2f(50, 15+50*i));
+            label.setPosition(sf::Vector2f(50, 65+50*i));
             window.draw(label);
         }   
 
