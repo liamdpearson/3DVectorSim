@@ -1,19 +1,19 @@
 #define _USE_MATH_DEFINES
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include <variant>
 #include <iostream>
 #include <cmath>
 #include <string>
-#include <sstream>
 #include <iomanip>
 #include "ui.hpp"
 
 const int SCREEN_WIDTH = 1000, SCREEN_HEIGHT = 1000;
 const std::vector<sf::Color> vector_colors = {
-    sf::Color::Green, sf::Color::Yellow,
-    sf::Color::Cyan, sf::Color::Red,
-    sf::Color::Blue, sf::Color::Magenta
+    sf::Color::Green,
+    sf::Color::Yellow,
+    sf::Color::Cyan,
+    sf::Color::Red,
+    sf::Color::Magenta
 };
 
 const std::vector<sf::Color> plane_colors = {
@@ -22,7 +22,7 @@ const std::vector<sf::Color> plane_colors = {
     sf::Color::Magenta
 };
 
-std::string vec_to_string(float x, float y, float z);
+std::string float_to_frac(float val);
 std::string nvec_to_string(float x, float y, float z);
 
 struct Vector3 {
@@ -42,12 +42,25 @@ struct Vector3 {
     float length() const {
         return std::sqrt(x*x + y*y + z*z);
     }
+    void normalize() {
+        float len = length();
+        if (len > 0) {
+            x /= len;
+            y /= len;
+            z /= len;
+        }
+    }
+    void scale(float scalar) {
+        x *= scalar;
+        y *= scalar;
+        z *= scalar;
+    }
 };
 
 struct Vector {
     Vector3 vec;
     sf::Color color;
-    std::string text = vec_to_string(vec.x, vec.y, vec.z);
+    std::string text = "(" + float_to_frac(vec.x) + ", " + float_to_frac(vec.y) + ", " + float_to_frac(vec.z) + ")";
 };
 
 struct BasisVector {

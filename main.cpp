@@ -3,22 +3,47 @@
 // g++ -c main.cpp ui.cpp -I"C:/SFML-2.5.1/include" -DSFML_STATIC
 // g++ main.o ui.o -o main -L"C:/SFML-2.5.1/lib" -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lopengl32 -lfreetype -lwinmm -lgdi32 -mwindows
 
-std::string vec_to_string(float x, float y, float z) {
-    std::ostringstream oss;
-    oss << std::fixed << std::setprecision(1);
-    oss << "(" << x << ", " << y << ", " << z << ")";
-    return oss.str();
+std::string float_to_frac(float val) {
+    if (std::abs(val) < 1e-6f) return "0";
+
+    bool negative = val < 0;
+    double x = std::abs((double)val);
+
+    const double eps = 1e-6;
+    const long long max_denom = 100000;
+
+    long long h0 = 0, h1 = 1;
+    long long k0 = 1, k1 = 0;
+    double b = x;
+
+    for (int i = 0; i < 64; i++) {
+        long long a = (long long)std::floor(b);
+        long long h2 = a * h1 + h0;
+        long long k2 = a * k1 + k0;
+
+        if (k2 > max_denom) break;
+
+        h0 = h1; h1 = h2;
+        k0 = k1; k1 = k2;
+
+        if (std::abs(x - (double)h1 / (double)k1) < eps) break;
+
+        double frac = b - (double)a;
+        if (frac < 1e-12) break;
+        b = 1.0 / frac;
+    }
+
+    std::string sign = negative ? "-" : "";
+    if (k1 == 1) return sign + std::to_string(h1);
+    return sign + std::to_string(h1) + "/" + std::to_string(k1);
 }
 
 std::string nvec_to_string(float x, float y, float z) {
-    std::ostringstream oss;
-    oss << std::fixed << std::setprecision(1);
-    std::string s1 = "x ", s2 = "y ";
-    if (y>0) s1 = "x+"; if (z>0) s2 = "y+";
-    oss << x << s1 << y << s2 << z << "z = 0";
-    return oss.str();
+    std::string s1 = "x", s2 = "y";
+    if (y>0) s1 = "x+";
+    if (z>0) s2 = "y+";
+    return float_to_frac(x) + s1 + float_to_frac(y) + s2 + float_to_frac(z) + "z = 0";
 }
-
 
 float dot_prod(const Vector3& u, const Vector3& v) {
     return (u.x * v.x) + (u.y * v.y) + (u.z * v.z);
@@ -108,7 +133,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                     float x = std::stof(tokens[2]);
                     float y = std::stof(tokens[3]);
                     float z = std::stof(tokens[4]);
-                    vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 6]});
+                    vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 5]});
                     e_msg = "";
                 } catch (std::invalid_argument e) {
                     e_msg = "Error: invalid vector value input";
@@ -196,18 +221,17 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
             Vector3 vec = Vector3{};
 
             if (tokens[0] == "add") {
-                vec.x = vectors[a-1].vec.x + vectors[b-1].vec.x;
-                vec.y = vectors[a-1].vec.y + vectors[b-1].vec.y;
-                vec.z = vectors[a-1].vec.z + vectors[b-1].vec.z;
+                vectors[a-1].vec.x += vectors[b-1].vec.x;
+                vectors[a-1].vec.y += vectors[b-1].vec.y;
+                vectors[a-1].vec.z += vectors[b-1].vec.z;
             }
             if (tokens[0] == "sub") {
-                vec.x = vectors[a-1].vec.x - vectors[b-1].vec.x;
-                vec.y = vectors[a-1].vec.y - vectors[b-1].vec.y;
-                vec.z = vectors[a-1].vec.z - vectors[b-1].vec.z;
-            
+                vectors[a-1].vec.x -= vectors[b-1].vec.x;
+                vectors[a-1].vec.y -= vectors[b-1].vec.y;
+                vectors[a-1].vec.z -= vectors[b-1].vec.z;
             }
-
-            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+            vectors[a-1].text = "(" + float_to_frac(vectors[a-1].vec.x) + ", " + float_to_frac(vectors[a-1].vec.y) + ", " + float_to_frac(vectors[a-1].vec.z) + ")";
+            e_msg = "";
         }
         else {
             e_msg = "Error: invalid amount of arguments";
@@ -230,7 +254,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 return;
                             }
                             Vector3 vec = proj_vec(vectors[a-1].vec, vectors[b-1].vec);
-                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 5]});
                         }
                         else if (tokens[2][0] == 'p') {
                             if (b < 1 || b > planes.size()) {
@@ -238,7 +262,8 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 return;
                             }
                             Vector3 vec = proj_plane(vectors[a-1].vec, planes[b-1]);
-                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 5]});
+                            e_msg = "";
                         }
                         else {
                             e_msg = "Error: invalid input";
@@ -253,6 +278,91 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
         else {
             e_msg = "Error: invalid amount of arguments";
         }
+    }
+    else if (tokens[0] == "normalize") {
+        if (tokens.size() == 2) {
+            int a;
+            if (tokens[1][0] == 'v' && tokens[1].length() == 2) {
+                if (std::isdigit(tokens[1][1])) {
+                        a = tokens[1][1] - '0';
+                        if (a < 1 || a > vectors.size()) {
+                            e_msg = "Error: index out of range";
+                            return;
+                        }
+                } else {
+                    e_msg = "Error: invalid input";
+                    return;
+                }
+            } else {
+                e_msg = "Error: invalid input";
+                return;
+            }
+            if (vectors[a-1].vec.length() == 0) {
+                e_msg = "Error: cannot normalize zero vector";
+                return;
+            }
+            if (vectors[a-1].vec.length() >= .999999f && vectors[a-1].vec.length() <= 1.000001f) {
+                e_msg = "Error: already normalized";
+                return;
+            }
+
+            float x = vectors[a-1].vec.x;
+            float y = vectors[a-1].vec.y;
+            float z = vectors[a-1].vec.z;
+
+            std::string x_str = float_to_frac(x);
+            std::string y_str = float_to_frac(y);
+            std::string z_str = float_to_frac(z);
+
+            std::string len_sqrd = float_to_frac(x*x + y*y + z*z);
+            
+            vectors[a-1].vec.normalize();
+            vectors[a-1].text = "(" + x_str + "/sqrt(" + len_sqrd + "), " + y_str + "/sqrt(" + len_sqrd + "), " + z_str + "/sqrt(" + len_sqrd + "))";
+            e_msg = "";
+        }
+        else {
+            e_msg = "Error: invalid amount of arguments";
+        }
+    }
+    else if (tokens[0] == "scale") {
+        if (tokens.size() == 3) {
+            int a;
+            float scalar;
+            if (tokens[1][0] == 'v' && tokens[1].length() == 2) {
+                if (std::isdigit(tokens[1][1])) {
+                        a = tokens[1][1] - '0';
+                        if (a < 1 || a > vectors.size()) {
+                            e_msg = "Error: index out of range";
+                            return;
+                        }
+                } else {
+                    e_msg = "Error: invalid input";
+                    return;
+                }
+            } else {
+                e_msg = "Error: invalid input";
+                return;
+            }
+            if (std::isdigit(tokens[2][0])) {
+                scalar = std::stof(tokens[2]);
+            } else {
+                e_msg = "Error: invalid scalar value";
+                return;
+            }
+            vectors[a-1].vec.scale(scalar);
+            vectors[a-1].text = "(" + float_to_frac(vectors[a-1].vec.x) + ", " + float_to_frac(vectors[a-1].vec.y) + ", " + float_to_frac(vectors[a-1].vec.z) + ")";
+            e_msg = "";
+        }
+        else {
+            e_msg = "Error: invalid amount of arguments";
+        }
+    }
+    else if (tokens[0] == "clear" && tokens.size() == 1) {
+        vectors = {};
+        planes = {};
+    }
+    else if (tokens[0] == "help" && tokens.size() == 1) {
+        e_msg = "Commands:\nnew vec x y z\nnew plane vN\nnew plane vN vM\nadd vN vM\nsub vN vM\nproj vN vM\nproj vN pN\nclear\nhelp";
     }
     else {
         e_msg = "Error: unrecognized command";
