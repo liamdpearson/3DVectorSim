@@ -10,10 +10,16 @@ Desmos style 3D vector visualizer
 - new plane v(vector index a) v(vector index b)
 > creates a new plane that goes through vectors a and b
 - add v(vector index a) v(vector index b)
-> creates new vector from a + b
+> adds vector b to a
 - sub v(vector index a) v(vector index b)
-> creates new vector from a - b
+> subtracts vector b from a
 - proj v(vector index a) v(vector index b)
 > projects vector a onto vector b
 - proj v(vector index a) p(plane index b)
-> projects a vector onto a plane
+> projects vector a onto plane b
+- scale v(vector index a) (scalar)
+> scales vector a by scalar
+- normalize v(vector index a)
+> scales vector a to length one
+- clear
+> clears all vectors and planes
