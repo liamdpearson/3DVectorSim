@@ -23,3 +23,5 @@ Desmos style 3D vector visualizer
 > scales vector a to length one
 - clear
 > clears all vectors and planes
+- help
+> prints commands
