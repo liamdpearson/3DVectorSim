@@ -119,79 +119,84 @@ std::vector<std::string> split_by_spaces(std::string s) {
     return tokens;
 }
 
-void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, const std::string cmd, std::string& e_msg) {
+void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, const std::string cmd, std::string& e_msg, std::string& help_msg) {
     std::vector<std::string> tokens = split_by_spaces(cmd);
-
+    help_msg = "";
     if (tokens[0] == "new") {
-        if (tokens[1] == "vec") {
+        if (tokens.size() > 1) {
+            if (tokens[1] == "vec") {
 
-            if (vectors.size() >= 6) {
-                e_msg = "Error: too many vectors";
-            }
-            else if (tokens.size() == 5) {
-                try {
-                    float x = std::stof(tokens[2]);
-                    float y = std::stof(tokens[3]);
-                    float z = std::stof(tokens[4]);
-                    vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 5]});
-                    e_msg = "";
-                } catch (std::invalid_argument e) {
-                    e_msg = "Error: invalid vector value input";
+                if (vectors.size() >= 6) {
+                    e_msg = "Error: too many vectors";
+                }
+                else if (tokens.size() == 5) {
+                    try {
+                        float x = std::stof(tokens[2]);
+                        float y = std::stof(tokens[3]);
+                        float z = std::stof(tokens[4]);
+                        vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 5]});
+                        e_msg = "";
+                    } catch (std::invalid_argument e) {
+                        e_msg = "Error: invalid vector value input";
+                    }
+                }
+                else {
+                    e_msg = "Error: invalid amount of arguments";
                 }
             }
-            else {
-                e_msg = "Error: invalid amount of arguments";
-            }
-        }
 
-        else if (tokens[1] == "plane") {
+            else if (tokens[1] == "plane") {
 
-            if (planes.size() >= 3) {
-                e_msg = "Error: too many planes";
-            }
-            else if (tokens.size() == 3 && tokens[2].length() == 2) {
-                if (tokens[2][0] == 'v') {
-                    if (std::isdigit(tokens[2][1])) {
-                        int n = tokens[2][1] - '0';
-                        if (n < 1 || n > vectors.size()) {
-                            e_msg = "Error: index out of range";
-                            return;
+                if (planes.size() >= 3) {
+                    e_msg = "Error: too many planes";
+                }
+                else if (tokens.size() == 3 && tokens[2].length() == 2) {
+                    if (tokens[2][0] == 'v') {
+                        if (std::isdigit(tokens[2][1])) {
+                            int n = tokens[2][1] - '0';
+                            if (n < 1 || n > vectors.size()) {
+                                e_msg = "Error: index out of range";
+                                return;
+                            }
+                            planes.push_back(Plane{vectors[n-1].vec, plane_colors[planes.size() % 3]});
+                            e_msg = "";
+                        } else {
+                            e_msg = "Error: invalid input";
                         }
-                        planes.push_back(Plane{vectors[n-1].vec, plane_colors[planes.size() % 3]});
-                        e_msg = "";
-                    } else {
+                    }
+                    else {
+                        e_msg = "Error: invalid input";
+                    }
+                }
+                else if (tokens.size() == 4) {
+                    if (tokens[2][0] == 'v' && tokens[2].length() == 2 && tokens[3][0] == 'v' && tokens[3].length() == 2) {
+                        if (std::isdigit(tokens[2][1]) && std::isdigit(tokens[3][1])) {
+                            int n1 = tokens[2][1] - '0';
+                            int n2 = tokens[3][1] - '0';
+                            if (n1 < 1 || n1 > vectors.size() || n2 < 1 || n2 > vectors.size()) {
+                                e_msg = "Error: index out of range";
+                                return;
+                            }
+                            planes.push_back(Plane{vectors[n1-1].vec, vectors[n2-1].vec, plane_colors[planes.size() % 3]});
+                            e_msg = "";
+                        } else {
+                            e_msg = "Error: invalid input";
+                        }
+                    }
+                    else {
                         e_msg = "Error: invalid input";
                     }
                 }
                 else {
-                    e_msg = "Error: invalid input";
-                }
-            }
-            else if (tokens.size() == 4) {
-                if (tokens[2][0] == 'v' && tokens[2].length() == 2 && tokens[3][0] == 'v' && tokens[3].length() == 2) {
-                    if (std::isdigit(tokens[2][1]) && std::isdigit(tokens[3][1])) {
-                        int n1 = tokens[2][1] - '0';
-                        int n2 = tokens[3][1] - '0';
-                        if (n1 < 1 || n1 > vectors.size() || n2 < 1 || n2 > vectors.size()) {
-                            e_msg = "Error: index out of range";
-                            return;
-                        }
-                        planes.push_back(Plane{vectors[n1-1].vec, vectors[n2-1].vec, plane_colors[planes.size() % 3]});
-                        e_msg = "";
-                    } else {
-                        e_msg = "Error: invalid input";
-                    }
-                }
-                else {
-                    e_msg = "Error: invalid input";
+                    e_msg = "Error: invalid amount of arguments";
                 }
             }
             else {
-                e_msg = "Error: invalid amount of arguments";
+                e_msg = "Error: unrecognized object";
             }
         }
         else {
-            e_msg = "Error: unrecognized object";
+            e_msg = "Error: invalid amount of arguments";
         }
     }
     else if (tokens[0] == "add" || tokens[0] == "sub") {
@@ -362,7 +367,8 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
         planes = {};
     }
     else if (tokens[0] == "help" && tokens.size() == 1) {
-        e_msg = "Commands:\nnew vec x y z\nnew plane vN\nnew plane vN vM\nadd vN vM\nsub vN vM\nproj vN vM\nproj vN pN\nclear\nhelp";
+        help_msg = "Create New:\n     Vector: [new vec x y z]\n     Plane: [new plane vN] / [new plane vN vM]\nOperations:\n     Adding Vectors: [add vN vM]\n     Subtracting Vectors: [sub vN vM]\nProjections:\n     Projecting onto Vector: [proj vN vM]\n     Projecting onto Plane: [proj vN pN]\nScaling: [scale vN scalar]\nNormalization: [normalize vN]\nClear All: [clear]\nNote: vN and pN refer to the Nth vector and plane, respectively.";
+        e_msg = "";
     }
     else {
         e_msg = "Error: unrecognized command";
@@ -377,6 +383,7 @@ int main() {
     font.loadFromFile("Arial.ttf");
     std::string cur_command = "";
     std::string e_msg = "";
+    std::string help_msg = "";
 
     float cam_yaw = 45.f;
     float cam_pitch = 45.f;
@@ -436,7 +443,7 @@ int main() {
             else if (event.type == sf::Event::TextEntered) {
                 if (event.text.unicode == '\r') {
                     if (!cur_command.empty()) {
-                        handle_cmd_input(vectors, planes, cur_command, e_msg);
+                        handle_cmd_input(vectors, planes, cur_command, e_msg, help_msg);
                         update_buttons(vectors, planes, del_buttons, font);
                         cur_command = "";
                     }
@@ -584,6 +591,11 @@ int main() {
         error.setFillColor(sf::Color::Red);
         error.setPosition(sf::Vector2f(30, SCREEN_HEIGHT-120));
         window.draw(error);
+
+        sf::Text help(help_msg, font, 20);
+        help.setFillColor(sf::Color::Yellow);
+        help.setPosition(sf::Vector2f(30, SCREEN_HEIGHT-400));
+        window.draw(help);
 
         window.display();
         // stop drawing
