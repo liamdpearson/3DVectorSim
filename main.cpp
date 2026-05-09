@@ -197,7 +197,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
         }
         else {
             e_msg = "Error: invalid amount of arguments";
-        }
+        } 
     }
     else if (tokens[0] == "add" || tokens[0] == "sub") {
         if (tokens.size() == 3) {
@@ -226,14 +226,14 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
             Vector3 vec = Vector3{};
 
             if (tokens[0] == "add") {
-                vectors[a-1].vec.x += vectors[b-1].vec.x;
-                vectors[a-1].vec.y += vectors[b-1].vec.y;
-                vectors[a-1].vec.z += vectors[b-1].vec.z;
+                vectors[b-1].vec.x += vectors[a-1].vec.x;
+                vectors[b-1].vec.y += vectors[a-1].vec.y;
+                vectors[b-1].vec.z += vectors[a-1].vec.z;
             }
             if (tokens[0] == "sub") {
-                vectors[a-1].vec.x -= vectors[b-1].vec.x;
-                vectors[a-1].vec.y -= vectors[b-1].vec.y;
-                vectors[a-1].vec.z -= vectors[b-1].vec.z;
+                vectors[b-1].vec.x -= vectors[a-1].vec.x;
+                vectors[b-1].vec.y -= vectors[a-1].vec.y;
+                vectors[b-1].vec.z -= vectors[a-1].vec.z;
             }
             vectors[a-1].text = "(" + float_to_frac(vectors[a-1].vec.x) + ", " + float_to_frac(vectors[a-1].vec.y) + ", " + float_to_frac(vectors[a-1].vec.z) + ")";
             e_msg = "";

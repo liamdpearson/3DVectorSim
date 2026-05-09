@@ -10,9 +10,9 @@ Desmos style 3D vector visualizer
 - new plane v(vector index a) v(vector index b)
 > creates a new plane that goes through vectors a and b
 - add v(vector index a) v(vector index b)
-> adds vector b to a
+> adds vector a to b
 - sub v(vector index a) v(vector index b)
-> subtracts vector b from a
+> subtracts vector a from b
 - proj v(vector index a) v(vector index b)
 > projects vector a onto vector b
 - proj v(vector index a) p(plane index b)
