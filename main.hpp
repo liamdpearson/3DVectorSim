@@ -135,4 +135,6 @@ std::tuple<float, float, float> calc_dist(const Vector3 vec, Vector3 cam_vec, fl
 
 sf::Color choose_vec_color(const std::vector<Vector>& vectors);
 
+sf::Color choose_plane_color(const std::vector<Plane>& planes);
+
 void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, const std::string cmd, std::string& e_msg, std::string& help_msg);
