@@ -3,7 +3,7 @@
 // g++ -c main.cpp ui.cpp -I"C:/SFML-2.5.1/include" -DSFML_STATIC
 // g++ main.o ui.o -o main -L"C:/SFML-2.5.1/lib" -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lopengl32 -lfreetype -lwinmm -lgdi32 -mwindows
 
-std::string float_to_frac(float val) {
+std::string float_to_frac(float val) { // this fn was made by claude, dunno how it works
     if (std::abs(val) < 1e-6f) return "0";
 
     bool negative = val < 0;
@@ -40,8 +40,8 @@ std::string float_to_frac(float val) {
 
 std::string nvec_to_string(float x, float y, float z) {
     std::string s1 = "x", s2 = "y";
-    if (y>0) s1 = "x+";
-    if (z>0) s2 = "y+";
+    if (y>=0) s1 = "x+";
+    if (z>=0) s2 = "y+";
     return float_to_frac(x) + s1 + float_to_frac(y) + s2 + float_to_frac(z) + "z = 0";
 }
 
@@ -79,9 +79,9 @@ void update_buttons(std::vector<Vector>& vectors, std::vector<Plane>& planes, st
         [&vectors, i]() { vectors.erase(vectors.begin() + i); }));
     }
 
-    for (int i = vectors.size(); i < vectors.size() + planes.size(); i++) {
+    for (int i = 0; i < planes.size(); i++) {
         del_buttons.push_back(Button(
-        sf::Vector2f(10, 110 + 50*i), sf::Vector2f(30, 30), "X", font,
+        sf::Vector2f(10, 110 + 50*(i+vectors.size())), sf::Vector2f(30, 30), "X", font,
         [&planes, i]() { planes.erase(planes.begin() + i); }));
     }
 }
@@ -121,10 +121,14 @@ std::vector<std::string> split_by_spaces(std::string s) {
 
 void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, const std::string cmd, std::string& e_msg, std::string& help_msg) {
     std::vector<std::string> tokens = split_by_spaces(cmd);
+    if (tokens.empty()) {
+        e_msg = "Error: no command entered";
+        return;
+    }
     help_msg = "";
     if (tokens[0] == "new") {
         if (tokens.size() > 1) {
-            if (tokens[1] == "vec") {
+            if (tokens[1] == "vec" || tokens[1] == "vector") {
 
                 if (vectors.size() >= 6) {
                     e_msg = "Error: too many vectors";
@@ -134,7 +138,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                         float x = std::stof(tokens[2]);
                         float y = std::stof(tokens[3]);
                         float z = std::stof(tokens[4]);
-                        vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 5]});
+                        vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 6]});
                         e_msg = "";
                     } catch (std::invalid_argument e) {
                         e_msg = "Error: invalid vector value input";
@@ -158,7 +162,12 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 e_msg = "Error: index out of range";
                                 return;
                             }
-                            planes.push_back(Plane{vectors[n-1].vec, plane_colors[planes.size() % 3]});
+                            Vector3 normal = vectors[n-1].vec;
+                            if (normal.length() <= 1e-6f) {
+                                e_msg = "Error: cannot create plane with zero normal vector";
+                                return;
+                            }
+                            planes.push_back(Plane{normal, plane_colors[planes.size() % 3]});
                             e_msg = "";
                         } else {
                             e_msg = "Error: invalid input";
@@ -177,7 +186,13 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 e_msg = "Error: index out of range";
                                 return;
                             }
-                            planes.push_back(Plane{vectors[n1-1].vec, vectors[n2-1].vec, plane_colors[planes.size() % 3]});
+                            Vector3 v1 = vectors[n1-1].vec;
+                            Vector3 v2 = vectors[n2-1].vec;
+                            if (v1.length() <= 1e-6f || v2.length() <= 1e-6f) {
+                                e_msg = "Error: cannot create plane with zero vector";
+                                return;
+                            }
+                            planes.push_back(Plane{v1, v2, plane_colors[planes.size() % 3]});
                             e_msg = "";
                         } else {
                             e_msg = "Error: invalid input";
@@ -235,7 +250,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                 vectors[b-1].vec.y -= vectors[a-1].vec.y;
                 vectors[b-1].vec.z -= vectors[a-1].vec.z;
             }
-            vectors[a-1].text = "(" + float_to_frac(vectors[a-1].vec.x) + ", " + float_to_frac(vectors[a-1].vec.y) + ", " + float_to_frac(vectors[a-1].vec.z) + ")";
+            vectors[b-1].text = "(" + float_to_frac(vectors[b-1].vec.x) + ", " + float_to_frac(vectors[b-1].vec.y) + ", " + float_to_frac(vectors[b-1].vec.z) + ")";
             e_msg = "";
         }
         else {
@@ -244,6 +259,10 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
     }
     else if (tokens[0] == "proj") {
         if (tokens.size() == 3) {
+            if (vectors.size() >= 6) {
+                e_msg = "Error: too many vectors";
+                return;
+            }
             int a, b;
             if (tokens[1][0] == 'v' && tokens[1].length() == 2 && tokens[2].length() == 2) {
                 if (std::isdigit(tokens[1][1]) && std::isdigit(tokens[2][1])) {
@@ -259,7 +278,8 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 return;
                             }
                             Vector3 vec = proj_vec(vectors[a-1].vec, vectors[b-1].vec);
-                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 5]});
+                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+                            e_msg = "";
                         }
                         else if (tokens[2][0] == 'p') {
                             if (b < 1 || b > planes.size()) {
@@ -267,7 +287,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 return;
                             }
                             Vector3 vec = proj_plane(vectors[a-1].vec, planes[b-1]);
-                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 5]});
+                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
                             e_msg = "";
                         }
                         else {
@@ -302,7 +322,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                 e_msg = "Error: invalid input";
                 return;
             }
-            if (vectors[a-1].vec.length() == 0) {
+            if (vectors[a-1].vec.length() >= -1e-6f && vectors[a-1].vec.length() <= 1e-6f) {
                 e_msg = "Error: cannot normalize zero vector";
                 return;
             }
@@ -348,10 +368,14 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                 e_msg = "Error: invalid input";
                 return;
             }
-            if (std::isdigit(tokens[2][0])) {
+            try {
                 scalar = std::stof(tokens[2]);
-            } else {
-                e_msg = "Error: invalid scalar value";
+                if (scalar == 1) {
+                    e_msg = "Error: don't waste my time";
+                    return;
+                }
+            } catch (...) {
+                e_msg = "Error: invalid scalar input";
                 return;
             }
             vectors[a-1].vec.scale(scalar);
@@ -363,6 +387,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
         }
     }
     else if (tokens[0] == "clear" && tokens.size() == 1) {
+        e_msg = "";
         vectors = {};
         planes = {};
     }
@@ -459,6 +484,7 @@ int main() {
             for (Button& button: del_buttons) {
                 if (button.handleEvent(event)) {
                     update_buttons(vectors, planes, del_buttons, font);
+                    break;
                 }
             }   
         }

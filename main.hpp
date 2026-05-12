@@ -13,7 +13,8 @@ const std::vector<sf::Color> vector_colors = {
     sf::Color::Yellow,
     sf::Color::Cyan,
     sf::Color::Red,
-    sf::Color::Magenta
+    sf::Color::Magenta,
+    sf::Color::Blue
 };
 
 const std::vector<sf::Color> plane_colors = {
@@ -128,7 +129,7 @@ struct Plane {
 
 Vector3 proj_plane(const Vector3& u, const Plane& v);
 
-void update_buttons(std::vector<Vector>& vectors, std::vector<Button>& del_buttons, const sf::Font& font);
+void update_buttons(std::vector<Vector>& vectors, std::vector<Plane>& planes, std::vector<Button>& del_buttons, const sf::Font& font);
 
 std::tuple<float, float, float> calc_dist(const Vector3 vec, Vector3 cam_vec, float cam_len_sqrd, Vector3 y_vec, Vector3 x_vec);
 
