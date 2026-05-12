@@ -1,7 +1,9 @@
 #include "main.hpp"
+#include "Arial_ttf.hpp"
 
-// g++ -c main.cpp ui.cpp -I"C:/SFML-2.5.1/include" -DSFML_STATIC
-// g++ main.o ui.o -o main -L"C:/SFML-2.5.1/lib" -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lopengl32 -lfreetype -lwinmm -lgdi32 -mwindows
+// windres icon.rc -O coff -o icon.res
+// g++ -c main.cpp ui.cpp Arial_ttf.hpp -I"C:/SFML-2.5.1/include" -DSFML_STATIC
+// g++ main.o ui.o icon.res -o 3DVectorSim -L"C:/SFML-2.5.1/lib" -lsfml-graphics-s -lsfml-window-s -lsfml-system-s -lopengl32 -lfreetype -lwinmm -lgdi32 -mwindows
 
 std::string float_to_frac(float val) { // this fn was made by claude, dunno how it works
     if (std::abs(val) < 1e-6f) return "0";
@@ -433,7 +435,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode({SCREEN_WIDTH, SCREEN_HEIGHT}), "3DVectorSim");
 
     sf::Font font;
-    font.loadFromFile("Arial.ttf");
+    font.loadFromMemory(Arial_ttf, Arial_ttf_len);
     std::string cur_command = "";
     std::string e_msg = "";
     std::string help_msg = "";
