@@ -119,6 +119,34 @@ std::vector<std::string> split_by_spaces(std::string s) {
     return tokens;
 }
 
+sf::Color choose_vec_color(const std::vector<Vector>& vectors) {
+    for (sf::Color color : vector_colors) {
+        bool used = false;
+        for (const Vector& vec : vectors) {
+            if (vec.color == color) {
+                used = true;
+                break;
+            }
+        }
+        if (!used) return color;
+    }
+    return sf::Color::White; // fallback, should never happen since we limit to 6 vectors
+}
+
+sf::Color choose_plane_color(const std::vector<Plane>& planes) {
+    for (sf::Color color : plane_colors) {
+        bool used = false;
+        for (const Plane& plane : planes) {
+            if (plane.color == color) {
+                used = true;
+                break;
+            }
+        }
+        if (!used) return color;
+    }
+    return sf::Color::White; // fallback, should never happen since we limit to 6 vectors
+}
+
 void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, const std::string cmd, std::string& e_msg, std::string& help_msg) {
     std::vector<std::string> tokens = split_by_spaces(cmd);
     if (tokens.empty()) {
@@ -138,7 +166,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                         float x = std::stof(tokens[2]);
                         float y = std::stof(tokens[3]);
                         float z = std::stof(tokens[4]);
-                        vectors.push_back(Vector{Vector3{x, y, z}, vector_colors[vectors.size() % 6]});
+                        vectors.push_back(Vector{Vector3{x, y, z}, choose_vec_color(vectors)});
                         e_msg = "";
                     } catch (std::invalid_argument e) {
                         e_msg = "Error: invalid vector value input";
@@ -167,7 +195,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 e_msg = "Error: cannot create plane with zero normal vector";
                                 return;
                             }
-                            planes.push_back(Plane{normal, plane_colors[planes.size() % 3]});
+                            planes.push_back(Plane{normal, choose_plane_color(planes)});
                             e_msg = "";
                         } else {
                             e_msg = "Error: invalid input";
@@ -192,7 +220,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 e_msg = "Error: cannot create plane with zero vector";
                                 return;
                             }
-                            planes.push_back(Plane{v1, v2, plane_colors[planes.size() % 3]});
+                            planes.push_back(Plane{v1, v2, choose_plane_color(planes)});
                             e_msg = "";
                         } else {
                             e_msg = "Error: invalid input";
@@ -278,7 +306,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 return;
                             }
                             Vector3 vec = proj_vec(vectors[a-1].vec, vectors[b-1].vec);
-                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+                            vectors.push_back(Vector{vec, choose_vec_color(vectors)});
                             e_msg = "";
                         }
                         else if (tokens[2][0] == 'p') {
@@ -287,7 +315,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
                                 return;
                             }
                             Vector3 vec = proj_plane(vectors[a-1].vec, planes[b-1]);
-                            vectors.push_back(Vector{vec, vector_colors[vectors.size() % 6]});
+                            vectors.push_back(Vector{vec, choose_vec_color(vectors)});
                             e_msg = "";
                         }
                         else {
