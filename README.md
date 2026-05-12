@@ -1,6 +1,7 @@
 # 3D Vector Visualizer
 
 ### Desmos style 3D vector visualizer
+[Download latest stable release](https://github.com/liamdpearson/3DVectorSim/releases/download/latest/3DVectorSim.exe)
 
 ## All Commands:
 - new vec x y z
