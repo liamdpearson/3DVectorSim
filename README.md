@@ -1,6 +1,6 @@
 # 3D Vector Visualizer
 
-Desmos style 3D vector visualizer
+### Desmos style 3D vector visualizer
 
 ## All Commands:
 - new vec x y z
