@@ -9,11 +9,11 @@
 
 const int SCREEN_WIDTH = 1000, SCREEN_HEIGHT = 1000;
 const std::vector<sf::Color> vector_colors = {
+    sf::Color::Cyan,
+    sf::Color::Magenta,
     sf::Color::Green,
     sf::Color::Yellow,
-    sf::Color::Cyan,
     sf::Color::Red,
-    sf::Color::Magenta,
     sf::Color::Blue
 };
 
