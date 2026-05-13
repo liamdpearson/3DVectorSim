@@ -18,7 +18,7 @@
 > subtracts vector N from M
 - proj vN vM
 > projects vector N onto vector M
-- proj vN vM
+- proj vN pM
 > projects vector N onto plane M
 - scale vN x
 > scales vector N by scalar x
