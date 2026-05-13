@@ -3,26 +3,30 @@
 ### Desmos style 3D vector visualizer
 [Download latest stable release](https://github.com/liamdpearson/3DVectorSim/releases/download/latest/3DVectorSim.exe)
 
-## All Commands:
+## How to Use
+### Commands:
+
 - new vec x y z
 > creates new vector with coords (x, y, z)
-- new plane v(vector index a)
-> creates a new plane with vector a as the normal vector
-- new plane v(vector index a) v(vector index b)
-> creates a new plane that goes through vectors a and b
-- add v(vector index a) v(vector index b)
-> adds vector a to b
-- sub v(vector index a) v(vector index b)
-> subtracts vector a from b
-- proj v(vector index a) v(vector index b)
-> projects vector a onto vector b
-- proj v(vector index a) p(plane index b)
-> projects vector a onto plane b
-- scale v(vector index a) (scalar)
-> scales vector a by scalar
-- normalize v(vector index a)
-> scales vector a to length one
+- new plane vN
+> creates a new plane with vector N as the normal vector
+- new plane vN vM
+> creates a new plane that goes through vectors N and M
+- add vN vM
+> adds vector N to M
+- sub vN vM
+> subtracts vector N from M
+- proj vN vM
+> projects vector N onto vector M
+- proj vN vM
+> projects vector N onto plane M
+- scale vN x
+> scales vector N by scalar x
+- normalize vN
+> scales vector N to length one
 - clear
 > clears all vectors and planes
 - help
 > prints commands
+
+Note: vN and pN refer to the Nth vector and plane, respectively.

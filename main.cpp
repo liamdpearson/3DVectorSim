@@ -422,7 +422,7 @@ void handle_cmd_input(std::vector<Vector>& vectors, std::vector<Plane>& planes, 
         planes = {};
     }
     else if (tokens[0] == "help" && tokens.size() == 1) {
-        help_msg = "Create New:\n     Vector: [new vec x y z]\n     Plane: [new plane vN] / [new plane vN vM]\nOperations:\n     Adding Vectors: [add vN vM]\n     Subtracting Vectors: [sub vN vM]\nProjections:\n     Projecting onto Vector: [proj vN vM]\n     Projecting onto Plane: [proj vN pN]\nScaling: [scale vN scalar]\nNormalization: [normalize vN]\nClear All: [clear]\nNote: vN and pN refer to the Nth vector and plane, respectively.";
+        help_msg = "Create New:\n     Vector: 'new vec x y z'\n     Plane: 'new plane vN' / 'new plane vN vM'\nOperations:\n     Adding Vectors: 'add vN vM'\n     Subtracting Vectors: 'sub vN vM'\nProjections:\n     Projecting onto Vector: 'proj vN vM'\n     Projecting onto Plane: 'proj vN pN'\nScaling: 'scale vN scalar'\nNormalization: 'normalize vN'\nClear All: 'clear'\nNote: vN and pN refer to the Nth vector and plane, respectively.";
         e_msg = "";
     }
     else {
@@ -441,8 +441,8 @@ int main() {
     std::string help_msg = "";
 
     float cam_yaw = 45.f;
-    float cam_pitch = 45.f;
-    float cam_dist = 8.f;
+    float cam_pitch = 15.f;
+    float cam_dist = 10.f;
     Vector3 up_vec = Vector3{0,0,1};
 
     std::vector<BasisVector> basis_vectors;
@@ -639,7 +639,7 @@ int main() {
                 button.draw(window);
         }
 
-        sf::Text cmd("Command: [" + cur_command + ']', font, 20);
+        sf::Text cmd("Command: [" + cur_command + "]\n(try 'help' for assistance)", font, 20);
         cmd.setPosition(sf::Vector2f(30, SCREEN_HEIGHT-60));
         window.draw(cmd);
 
