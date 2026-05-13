@@ -1,6 +1,6 @@
-# 3D Vector Visualizer
+# 3D Vector Simulator
 
-### Desmos style 3D vector visualizer
+### Desmos style 3D vector simulator
 [Download latest stable release](https://github.com/liamdpearson/3DVectorSim/releases/download/latest/3DVectorSim.exe)
 
 ## How to Use
