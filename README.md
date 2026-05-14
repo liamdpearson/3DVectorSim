@@ -1,6 +1,6 @@
 # 3D Vector Simulator
 ![](https://img.shields.io/badge/c++-17-blue)
-![](https://img.shields.io/badge/SMFL-2.5.1-red)
+![](https://img.shields.io/badge/SFML-2.5.1-red)
 
 ### Desmos style 3D vector simulator
 [Download latest stable release](https://github.com/liamdpearson/3DVectorSim/releases/download/latest/3DVectorSim.exe)
